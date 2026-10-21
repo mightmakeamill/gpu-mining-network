@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPU — Mining Network</title>
+<style>
+:root {
+  --site-primary: #76B900;
+  --site-secondary: #20261A;
+  --site-background: #0B0D0A;
+  --site-on-primary: #10140A;
+  --site-on-secondary: #F2F5EC;
+  --site-on-background: #F2F4EF;
+  --site-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --site-font-heading: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --site-heading-scale: 1;
+  --site-spacing-scale: 1;
+  --site-radius-scale: 1;
+  --site-decoration-opacity: 1;
+  color-scheme: light dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; font-family: var(--site-font-body); background: light-dark(#f4f6f0, var(--site-background)); color: light-dark(#171b14, var(--site-on-background)); }
+button, input { font: inherit; }
+button { cursor: pointer; }
+#app { min-height: 100vh; width: 100%; border-radius: 0; background: var(--site-background); color: var(--site-on-background); overflow: hidden; }
+.shell { display: grid; grid-template-columns: 236px minmax(0,1fr); min-height: 100vh; }
+.sidebar { background: #0e110c; border-right: 1px solid #252a20; padding: 26px 16px; display:flex; flex-direction:column; gap:34px; }
+.brand { display:flex; align-items:center; gap:11px; padding:0 10px; font-weight:850; letter-spacing:-.06em; font-size:22px; }
+.brand-mark { display:grid; place-items:center; width:34px;height:34px; border-radius:10px; color:#10140a; background:var(--site-primary); font-size:17px; font-weight:950; }
+.brand small { display:block; font-size:9px; letter-spacing:.18em; color:#8d9684; font-weight:700; margin-top:2px; }
+.nav-label { padding:0 12px; color:#68705f; font-size:10px; font-weight:800; letter-spacing:.16em; margin-bottom:9px; }
+.nav { display:grid; gap:5px; }
+.nav button { display:flex; align-items:center; gap:12px; width:100%; border:1px solid transparent; border-radius:10px; padding:12px 13px; color:#a3aa9b; background:transparent; text-align:left; font-size:13px; }
+.nav button .ico { width:18px; text-align:center; font-size:15px; }
+.nav button.active { background:#1a2113; border-color:#303b22; color:#d8f7a2; }
+.nav button:hover { background:#171c13; color:#f4f8ef; }
+.sidebar-bottom { margin-top:auto; }
+.network-card { border:1px solid #2a3024; background:#13170f; border-radius:13px; padding:14px; }
+.live-dot { display:inline-block; width:7px;height:7px;border-radius:50%; background:#91d92b; box-shadow:0 0 12px #76b90070; margin-right:7px; }
+.network-card .line { color:#8c9680; font-size:11px; }
+.network-card strong { display:block; font-size:21px; margin:9px 0 4px; }
+.network-card small { color:#7f8875; font-size:10px; }
+main { min-width:0; }
+.topbar { height:78px; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:0 34px; border-bottom:1px solid #252a20; background:#0b0d0a; }
+.search { display:flex; align-items:center; gap:10px; width:min(360px, 44vw); color:#77806d; border:1px solid #272d22; background:#10130e; padding:10px 13px; border-radius:10px; font-size:12px; }
+.search input { width:100%; color:#e9eee2; background:transparent; border:0; outline:0; }
+.top-actions { display:flex; align-items:center; gap:12px; }
+.pill { display:flex; align-items:center; gap:8px; border:1px solid #30372a; background:#141810; padding:9px 12px; border-radius:999px; color:#c4cbb9; font-size:11px; white-space:nowrap; }
+.avatar { width:31px;height:31px;border-radius:50%;display:grid;place-items:center;background:#29371a;border:1px solid #485a2c;color:#c8f18b;font-size:11px;font-weight:800; }
+.content { max-width:1440px; margin:auto; padding:30px 34px 48px; }
+.eyebrow { display:flex;align-items:center;gap:9px;color:#8b9680;text-transform:uppercase;letter-spacing:.16em;font-size:10px;font-weight:800; }
+.hero { position:relative; border:1px solid #2b3421; border-radius:18px; overflow:hidden; padding:34px 36px; background:radial-gradient(ellipse at 86% 20%, #253a13 0%, #151e0d 25%, #11150d 53%, #10120e 100%); }
+.hero:after { content:""; position:absolute; width:310px;height:310px;right:6%;top:-80px;border:1px solid #76b90025;border-radius:50%; box-shadow:0 0 0 35px #76b9000b,0 0 0 70px #76b90008; pointer-events:none; opacity:var(--site-decoration-opacity); }
+.hero-grid { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(230px,.85fr); gap:25px; align-items:center; position:relative; z-index:1; }
+.hero h1 { font-size:clamp(34px,4vw,54px); line-height:1.02; letter-spacing:-.065em; margin:17px 0 13px; max-width:560px; font-weight:820; }
+.hero h1 span { color:var(--site-primary); }
+.hero p { color:#a4ad98; max-width:500px; font-size:13px; line-height:1.8; margin:0; }
+.hero-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:24px; }
+.btn { border:1px solid #39422e; background:#1a2014; color:#d8e0cf; padding:11px 16px; border-radius:9px; font-size:12px; font-weight:750; transition:.2s; }
+.btn.primary { background:var(--site-primary); color:#11150b; border-color:var(--site-primary); }
+.btn:hover { transform:translateY(-1px); filter:brightness(1.08); }
+.hero-stat { justify-self:end; width:min(100%,310px); border:1px solid #39442d; border-radius:15px; background:#0d110bd9; padding:22px; }
+.stat-top { display:flex; justify-content:space-between; align-items:center; color:#9aa58d; font-size:11px; }
+.tag { color:#c8f18b; border:1px solid #405a26; background:#1b2911; padding:5px 8px; border-radius:999px; font-size:9px; letter-spacing:.08em; }
+.big-number { font-size:35px; font-weight:800; letter-spacing:-.06em; margin:14px 0 5px; }
+.big-number span { font-size:13px; color:#8f9a81; letter-spacing:0; font-weight:600; }
+.mini-chart { width:100%; height:54px; margin-top:9px; }
+.chart-caption { display:flex;justify-content:space-between;color:#7e8972;font-size:10px;margin-top:4px; }
+.section-head { display:flex; align-items:end; justify-content:space-between; gap:16px; margin:29px 0 14px; }
+.section-head h2 { font-size:17px; letter-spacing:-.035em; margin:0; }
+.section-head p { color:#7f8975; font-size:11px; margin:5px 0 0; }
+.subtle { color:#87917c; font-size:11px; }
+.metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.metric { border:1px solid #252c20; background:#11140f; border-radius:13px; padding:18px; min-width:0; }
+.metric-top { display:flex; justify-content:space-between; align-items:center; color:#8b9580; font-size:11px; gap:8px; }
+.metric-icon { width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:#1e2815;color:#bce87b;font-size:14px; }
+.metric-value { font-size:25px; font-weight:790; letter-spacing:-.05em; margin:16px 0 7px; }
+.metric-foot { font-size:10px; color:#85917a; }
+.positive { color:#a7df65; }
+.dashboard-grid { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(290px,.85fr); gap:14px; align-items:start; }
+.panel { border:1px solid #252c20; background:#11140f; border-radius:14px; overflow:hidden; min-width:0; }
+.panel-header { padding:17px 18px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #252b20; gap:10px; }
+.panel-header h3 { margin:0; font-size:13px; letter-spacing:-.02em; }
+.panel-header p { margin:4px 0 0; font-size:10px; color:#808b75; }
+.live-label { color:#a8df67; font-size:10px; }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; text-align:left; white-space:nowrap; }
+th { font-size:9px; text-transform:uppercase; letter-spacing:.11em; color:#75806b; font-weight:750; padding:13px 17px; }
+td { padding:14px 17px; border-top:1px solid #20261c; color:#c5cdbb; font-size:11px; }
+td:first-child { color:#eef3e8; font-weight:650; }
+.miner { display:flex;align-items:center;gap:9px; }
+.gpu-icon { display:grid;place-items:center;width:29px;height:29px;border-radius:8px;background:#20271a;color:#a9dc67;font-size:12px; }
+.status { display:inline-flex;align-items:center;gap:6px;font-size:10px;color:#a8df67; }
+.status:before { content:"";width:6px;height:6px;border-radius:50%;background:#83c82e; }
+.reward { color:#b8e77d; font-weight:700; }
+.leader-list { padding:3px 17px 9px; }
+.leader { display:grid; grid-template-columns:27px minmax(0,1fr) auto; align-items:center; gap:10px; padding:13px 0; border-bottom:1px solid #20261c; }
+.leader:last-child { border-bottom:0; }
+.rank { color:#737e68; font-size:11px; text-align:center; }
+.leader:nth-child(1) .rank { color:#d2ee8b; }
+.leader-avatar { width:31px;height:31px;border-radius:10px;display:grid;place-items:center;background:#20271a;color:#c3e98b;font-size:10px;font-weight:800; }
+.leader-name { font-size:11px; font-weight:700; color:#e2e9d9; }
+.leader-meta { font-size:9px;color:#78836d;margin-top:4px; }
+.leader-amount { font-size:11px;font-weight:750;color:#b9e87c;text-align:right; }
+.leader-amount small { display:block;font-size:9px;font-weight:500;color:#78836d;margin-top:4px; }
+.lower-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px; }
+.progress-content { padding:20px; }
+.progress-row { display:flex;justify-content:space-between;gap:10px;font-size:11px;margin-bottom:10px; }
+.progress-row span:first-child { color:#aab39e; }
+.progress-row strong { color:#e2e9d9; }
+.progress-track { height:6px;background:#252c20;border-radius:20px;overflow:hidden;margin-bottom:20px; }
+.progress-fill { height:100%;background:var(--site-primary);border-radius:20px; }
+.reward-box { padding:20px;display:flex;align-items:center;gap:16px; }
+.coin { width:48px;height:48px;border-radius:50%;display:grid;place-items:center;border:1px solid #5e7d2e;background:radial-gradient(circle at 30% 25%,#b0e45e,#47701a 65%,#263c11);color:#14200a;font-weight:950;font-size:18px;box-shadow:0 0 25px #76b9001b; }
+.reward-box h4 { margin:0 0 6px;font-size:13px; }
+.reward-box p { margin:0;color:#87917c;font-size:10px;line-height:1.7; }
+.reward-box .btn { margin-left:auto; }
+footer { display:flex;justify-content:space-between;gap:15px;align-items:center;border-top:1px solid #252b20;margin-top:30px;padding-top:20px;color:#67715e;font-size:10px; }
+.toast { position:fixed;right:24px;bottom:24px;background:#1d2815;border:1px solid #4d6c2b;color:#d8f4b0;border-radius:11px;padding:13px 16px;font-size:12px;box-shadow:0 10px 40px #0008;opacity:0;transform:translateY(8px);pointer-events:none;transition:.25s;z-index:10; }
+.toast.show { opacity:1;transform:translateY(0); }
+.wallet-address { max-width:118px; overflow:hidden; text-overflow:ellipsis; }
+.wallet-connected { border-color:#cfe2b4; background:#f0f7e6; color:#3c5d0b; }
+.miner-console { margin-top:18px; border:1px solid #2b3421; border-radius:15px; background:#11140f; overflow:hidden; }
+.miner-console-head { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:19px 22px; border-bottom:1px solid #252b20; }
+.miner-console-title { font-size:14px; font-weight:750; color:#f2f4ef; }
+.miner-console-sub,.miner-help,.session-message { color:#87917c; }
+.miner-console-body { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr); }
+.miner-form { padding:25px; border-right:1px solid #252b20; }
+.miner-field { display:block; margin-bottom:22px; }
+.miner-field label,.cpu-label { display:block; color:#9aa58d; font-size:10px; font-weight:800; letter-spacing:.13em; margin-bottom:10px; text-transform:uppercase; }
+.miner-field input { width:100%; min-height:47px; border:1px solid #30372a; border-radius:7px; background:#0d100c; color:#eef3e8; padding:12px 14px; outline-color:#76b900; }
+.miner-help { font-size:11px; line-height:1.7; margin-top:9px; }
+.consent-row { display:flex; align-items:flex-start; gap:10px; padding-top:19px; border-top:1px solid #252b20; color:#a4ad98; font-size:11px; line-height:1.8; }
+.consent-row input { accent-color:#76b900; margin-top:4px; flex-shrink:0; }
+.start-mining { width:100%; min-height:47px; margin-top:19px; }
+.start-mining:disabled { opacity:.48; cursor:not-allowed; transform:none; }
+.miner-status { padding:25px; min-width:0; background:#0e110c; }
+.session-label { display:flex; align-items:center; justify-content:space-between; color:#9aa58d; font-size:10px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+.session-hash { font-size:42px; letter-spacing:-.06em; margin:21px 0 15px; font-weight:650; }
+.sim-visual { min-height:190px; border:1px solid #2c3424; border-radius:12px; background:radial-gradient(ellipse at center,#1b2811 0%,#10130e 70%); display:grid; place-items:center; position:relative; overflow:hidden; }
+.sim-orbit { width:110px; height:110px; border:1px solid #49652b; border-radius:38% 62% 52% 48%; transform:rotate(25deg); box-shadow:0 0 0 13px #76b9000a,0 0 0 28px #76b90008; }
+.sim-caption { position:absolute; bottom:13px; color:#87917c; font-size:10px; }
+.session-stats { margin-top:18px; }
+.session-stat { display:flex; justify-content:space-between; gap:12px; padding:13px 0; border-bottom:1px solid #252b20; color:#87917c; font-size:11px; }
+.session-stat strong { color:#d8e0cf; font-weight:600; text-align:right; }
+.session-message { margin-top:17px; font-size:11px; line-height:1.8; }
+.gpu-brandline { display:flex; align-items:center; gap:9px; color:#a8df67; font-size:10px; font-weight:850; letter-spacing:.16em; text-transform:uppercase; }
+.nvidia-mark { width:25px;height:25px;display:grid;place-items:center;background:#76B900;color:#0b0d0a;border-radius:6px;font-size:12px;font-weight:950;letter-spacing:-.06em; }
+.device-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px; }
+.device-card { border:1px solid #252c20;background:#11140f;border-radius:12px;padding:13px;min-width:0; }
+.device-card span { display:block;color:#849078;font-size:10px;margin-bottom:10px; }
+.device-card strong { display:block;color:#e7eddf;font-size:15px;overflow-wrap:anywhere; }
+.device-card small { display:block;color:#76b900;font-size:10px;margin-top:7px; }
+@media (max-width:760px) { .miner-console-body { grid-template-columns:1fr; } .miner-form { border-right:0; border-bottom:1px solid #252b20; padding:20px; } .miner-status { padding:20px; } .miner-console-head { align-items:flex-start; flex-direction:column; } .device-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.miner-console { margin-top:18px; border:1px solid #e1e7d9; border-radius:15px; background:#fff; overflow:hidden; }
+.miner-console-head { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:19px 22px; border-bottom:1px solid #e6eae2; }
+.miner-console-title { font-size:14px; font-weight:750; }
+.miner-console-sub { color:#77816c; font-size:11px; margin-top:5px; }
+.miner-console-body { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr); }
+.miner-form { padding:25px; border-right:1px solid #e6eae2; }
+.miner-field { display:block; margin-bottom:22px; }
+.miner-field label,.cpu-label { display:block; color:#687260; font-size:10px; font-weight:800; letter-spacing:.13em; margin-bottom:10px; text-transform:uppercase; }
+.miner-field input { width:100%; min-height:47px; border:1px solid #dfe5d9; border-radius:7px; background:#fbfcfa; color:#20251c; padding:12px 14px; outline-color:#76b900; }
+.miner-help { color:#7c8573; font-size:11px; line-height:1.7; margin-top:9px; }
+.cpu-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.cpu-head strong { font-size:22px; font-weight:600; }
+.cpu-slider { width:100%; accent-color:#76b900; }
+.consent-row { display:flex; align-items:flex-start; gap:10px; padding-top:19px; border-top:1px solid #e8ece4; color:#66705e; font-size:11px; line-height:1.8; }
+.consent-row input { accent-color:#76b900; margin-top:4px; flex-shrink:0; }
+.start-mining { width:100%; min-height:47px; margin-top:19px; }
+.start-mining:disabled { opacity:.48; cursor:not-allowed; transform:none; }
+.miner-status { padding:25px; min-width:0; }
+.session-label { display:flex; align-items:center; justify-content:space-between; color:#78816f; font-size:10px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+.session-hash { font-size:42px; letter-spacing:-.06em; margin:21px 0 15px; font-weight:650; }
+.sim-visual { min-height:190px; border:1px solid #e6eae2; border-radius:12px; background:radial-gradient(ellipse at center,#f1f8e8 0%,#fff 70%); display:grid; place-items:center; position:relative; overflow:hidden; }
+.sim-orbit { width:110px; height:110px; border:1px solid #cde3b3; border-radius:38% 62% 52% 48%; transform:rotate(25deg); box-shadow:0 0 0 13px #76b9000a,0 0 0 28px #76b90008; }
+.sim-visual.running .sim-orbit { animation:orbit-spin 2.7s linear infinite; border-color:#76b900; }
+.sim-visual.running:after { content:""; position:absolute; inset:0; background:linear-gradient(110deg,transparent 25%,#76b90012 50%,transparent 75%); animation:scan 2s linear infinite; }
+/* Wallet-connected state: a soft liquid GPU core drifts and morphs inside the telemetry panel. */
+.sim-visual.wallet-active .sim-orbit { width:124px; height:124px; border:2px solid #76b900; background:radial-gradient(ellipse at 34% 28%,#d9f7ad 0%,#a8df65 28%,#76b900 58%,#4b7900 100%); box-shadow:0 0 22px #76b90045,0 0 0 14px #76b90012,0 0 0 29px #76b9000a; animation:liquid-drift 6s ease-in-out infinite; }
+.sim-visual.wallet-active:before { content:""; position:absolute; width:154px; height:154px; border-radius:42% 58% 60% 40% / 48% 42% 58% 52%; background:#76b90010; filter:blur(1px); animation:liquid-halo 8s ease-in-out infinite; }
+.sim-visual.wallet-active:after { content:""; position:absolute; inset:0; background:linear-gradient(115deg,transparent 20%,#ffffff50 48%,transparent 66%); pointer-events:none; animation:liquid-glint 4.5s ease-in-out infinite; }
+.sim-visual.wallet-active .sim-caption { color:#4e770d; font-weight:700; }
+ .sim-visual.wallet-active .sim-orbit { animation:liquid-drift 6s ease-in-out infinite, core-pulse 2.4s ease-in-out infinite; }
+ .sim-visual.wallet-active .sim-caption:after { content:""; display:inline-block; width:6px; height:6px; border-radius:50%; background:#76b900; margin-left:8px; vertical-align:middle; box-shadow:0 0 9px #76b900; animation:status-blink 1.2s ease-in-out infinite; }
+ @keyframes core-pulse { 0%,100% { box-shadow:0 0 22px #76b90045,0 0 0 14px #76b90012,0 0 0 29px #76b9000a; } 50% { box-shadow:0 0 34px #76b90075,0 0 0 20px #76b90017,0 0 0 40px #76b90008; } }
+ @keyframes status-blink { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+@keyframes liquid-drift { 0%,100% { transform:translate(-9px,3px) rotate(0deg); border-radius:42% 58% 60% 40% / 48% 42% 58% 52%; } 25% { transform:translate(8px,-8px) rotate(90deg); border-radius:58% 42% 43% 57% / 39% 57% 43% 61%; } 50% { transform:translate(4px,7px) rotate(180deg); border-radius:47% 53% 62% 38% / 57% 43% 55% 45%; } 75% { transform:translate(-7px,-4px) rotate(270deg); border-radius:60% 40% 39% 61% / 46% 60% 40% 54%; } }
+@keyframes liquid-halo { 0%,100% { transform:scale(.88) rotate(0deg); border-radius:42% 58% 60% 40%; } 50% { transform:scale(1.12) rotate(180deg); border-radius:60% 40% 42% 58%; } }
+@keyframes liquid-glint { 0%,100% { transform:translateX(-55%); opacity:.25; } 50% { transform:translateX(55%); opacity:.8; } }
+@keyframes orbit-spin { to { transform:rotate(385deg); } }
+@keyframes scan { from { transform:translateX(-100%); } to { transform:translateX(100%); } }
+.sim-caption { position:absolute; bottom:13px; color:#7c8673; font-size:10px; }
+.session-stats { margin-top:18px; }
+.session-stat { display:flex; justify-content:space-between; gap:12px; padding:13px 0; border-bottom:1px solid #edf0e9; color:#75806b; font-size:11px; }
+.session-stat strong { color:#424b39; font-weight:600; text-align:right; }
+.session-message { margin-top:17px; color:#687260; font-size:11px; line-height:1.8; }
+@media (max-width:760px) { .miner-console-body { grid-template-columns:1fr; } .miner-form { border-right:0; border-bottom:1px solid #e6eae2; padding:20px; } .miner-status { padding:20px; } .miner-console-head { align-items:flex-start; flex-direction:column; } }
+@media (max-width:1050px) { .shell{grid-template-columns:78px minmax(0,1fr)} .sidebar{padding:23px 10px;align-items:center}.brand{padding:0}.brand-word,.nav-label,.nav button .nav-text,.network-card{display:none}.nav{width:100%}.nav button{justify-content:center;padding:12px 0}.nav button .ico{width:auto}.sidebar-bottom{display:none}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-grid{grid-template-columns:1fr}.hero-grid{grid-template-columns:minmax(0,1fr) 260px}.content{padding:24px}.topbar{padding:0 24px} }
+@media (max-width:680px) { .shell{display:block}.sidebar{height:62px;flex-direction:row;justify-content:space-between;padding:0 16px;border-right:0;border-bottom:1px solid #252a20}.brand-mark{width:31px;height:31px}.nav-label,.nav button .nav-text{display:none}.nav{display:flex;width:auto;gap:2px}.nav button{width:35px;height:36px;padding:0}.nav button .ico{font-size:14px}.topbar{height:64px;padding:0 16px}.search{width:100%;max-width:280px}.pill.network-pill{display:none}.content{padding:18px 14px 28px}.hero{padding:25px 21px}.hero-grid{grid-template-columns:1fr}.hero-stat{justify-self:stretch;width:100%;margin-top:8px}.hero h1{font-size:38px}.metrics{gap:9px}.metric{padding:13px}.metric-value{font-size:22px}.metric-top{font-size:10px}.metric-icon{width:27px;height:27px}.section-head{margin-top:24px}.lower-grid{grid-template-columns:1fr}.reward-box{flex-wrap:wrap}.reward-box .btn{margin-left:0}footer{flex-direction:column;align-items:flex-start}.top-actions{gap:8px}.avatar{flex-shrink:0} }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after{scroll-behavior:auto!important;transition:none!important} }
+/* Clean white-and-green layout inspired by the supplied mining site. */
+:root { color-scheme: light; --site-background:#ffffff; --site-on-background:#20251c; --site-secondary:#f5f7f1; --site-on-secondary:#20251c; }
+body { background:#fff; color:#20251c; }
+#app { background:#fff; color:#20251c; }
+.sidebar { background:#fff; border-right-color:#e6e9e1; }
+.brand small,.nav-label,.network-card .line,.network-card small { color:#78816f; }
+.nav button { color:#66705e; }
+.nav button.active { background:#f0f7e6; border-color:#d9e9c4; color:#477300; }
+.nav button:hover { background:#f5f8f1; color:#20251c; }
+.network-card { background:#f8faf5; border-color:#e3e8dc; }
+.topbar { background:#fff; border-bottom-color:#e6e9e1; }
+.search { color:#78816f; border-color:#e0e5d9; background:#fafbf8; }
+.search input { color:#20251c; }
+.pill { border-color:#e0e5d9; background:#fff; color:#525b49; }
+.avatar { background:#edf5e3; border-color:#d4e5bf; color:#477300; }
+.hero { border-color:#dfe8d4; background:radial-gradient(ellipse at 86% 20%,#f0f8e5 0%,#f8fbf4 42%,#fff 100%); }
+.hero:after { border-color:#76b90025; box-shadow:0 0 0 35px #76b9000b,0 0 0 70px #76b90008; }
+.eyebrow { color:#6e7962; }
+.hero p { color:#687260; }
+.btn { border-color:#dce4d3; background:#f7f9f4; color:#34402a; }
+.hero-stat { border-color:#e0e8d6; background:#fff; box-shadow:0 12px 34px #24350b0a; }
+.stat-top,.big-number span,.chart-caption,.section-head p,.subtle { color:#77816c; }
+.tag { color:#4b7509; border-color:#d5e7bd; background:#f0f7e6; }
+.metric,.panel { border-color:#e4e8df; background:#fff; box-shadow:0 5px 20px #24350b05; }
+.metric-top,.metric-foot,.panel-header p,.progress-row span:first-child,.reward-box p { color:#75806b; }
+.metric-icon,.gpu-icon,.leader-avatar { background:#f0f6e8; color:#5b8d12; }
+.panel-header { border-bottom-color:#e8ece4; }
+th { color:#78816f; }
+td { border-top-color:#edf0e9; color:#59624f; }
+td:first-child { color:#20251c; }
+.leader { border-bottom-color:#edf0e9; }
+.rank,.leader-meta,.leader-amount small { color:#78816f; }
+.leader-name,.progress-row strong,.reward-box h4 { color:#20251c; }
+.progress-track { background:#e9eee3; }
+footer { border-top-color:#e6e9e1; color:#78816f; }
+.toast { background:#f0f7e6; border-color:#cfe2b4; color:#3c5d0b; box-shadow:0 10px 40px #00000012; }
+.reward { color:#4b7509; }
+@media (max-width:1050px) { .sidebar { border-right-color:#e6e9e1; } }
+@media (max-width:680px) { .sidebar { background:#fff; border-bottom-color:#e6e9e1; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">G</div><div class="brand-word">GPU<small>NVIDIA GPU MINING</small></div></div>
+      <div style="width:100%">
+        <div class="nav-label">WORKSPACE</div>
+        <nav class="nav" aria-label="Main navigation">
+          <button class="active" data-section="Overview"><span class="ico">▦</span><span class="nav-text">Overview</span></button>
+          <button data-section="Miners"><span class="ico">▤</span><span class="nav-text">Miners</span></button>
+          <button data-section="Rewards"><span class="ico">◈</span><span class="nav-text">Rewards</span></button>
+          <button data-section="Leaderboard"><span class="ico">♜</span><span class="nav-text">Leaderboard</span></button>
+        </nav>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="nav-label">NETWORK</div>
+        <div class="network-card">
+          <div class="line"><span class="live-dot"></span>Network status</div>
+          <strong>Operational</strong>
+          <small>GPU compute network</small>
+        </div>
+      </div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Search miners, wallets..." aria-label="Search miners and wallets"></label>
+        <div class="top-actions">
+          <div class="pill network-pill"><span class="live-dot" style="background:#9aa58d;box-shadow:none"></span>Miner agent required</div>
+          <button class="pill" id="connectBtn">◉ &nbsp; Connect wallet</button>
+          <div class="avatar">G</div>
+        </div>
+      </header>
+      <div class="content">
+        <section class="hero">
+          <div class="hero-grid">
+            <div>
+              <div class="gpu-brandline"><span class="nvidia-mark">N</span> NVIDIA-COMPATIBLE MINING PLATFORM</div>
+              <h1>Your NVIDIA GPU.<br><span>Verified work. GPU rewards.</span></h1>
+              <p>Connect a compatible NVIDIA miner, route work through a mining pool, and associate verified contributions with your Solana wallet. Hardware telemetry and rewards come from the miner agent and pool—not from browser activity.</p>
+              <div class="hero-actions">
+                <button class="btn primary" id="exploreBtn">Explore miners ↗</button>
+                <button class="btn" id="rewardsBtn">View rewards</button>
+              </div>
+            </div>
+            <div class="hero-stat">
+              <div class="stat-top"><span>Verified network hashrate</span><span class="tag">LIVE DATA</span></div>
+              <div class="big-number"><span id="heroHash">20.73</span> <span>TH/s</span></div>
+              <svg class="mini-chart" viewBox="0 0 300 54" preserveAspectRatio="none" aria-label="Illustrative network activity chart">
+                <defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#76b900" stop-opacity=".35"/><stop offset="1" stop-color="#76b900" stop-opacity="0"/></linearGradient></defs>
+                <path d="M0 42 C15 38 18 40 31 28 S51 35 65 25 S87 28 101 19 S122 30 139 17 S162 24 177 11 S201 23 218 14 S240 18 253 8 S279 17 300 4 L300 54 L0 54Z" fill="url(#area)"/>
+                <path d="M0 42 C15 38 18 40 31 28 S51 35 65 25 S87 28 101 19 S122 30 139 17 S162 24 177 11 S201 23 218 14 S240 18 253 8 S279 17 300 4" fill="none" stroke="#91cf42" stroke-width="2"/>
+              </svg>
+              <div class="chart-caption"><span>Network history</span><span>Awaiting pool data</span></div>
+            </div>
+          </div>
+        </section>
+        <div class="section-head">
+          <div><h2>Mining overview</h2><p>Live figures will populate from authenticated miner and pool data</p></div>
+          <span class="subtle">Waiting for telemetry</span>
+        </div>
+        <section class="metrics" aria-label="Network metrics">
+          <div class="metric"><div class="metric-top"><span>Active miner profiles</span><span class="metric-icon">▤</span></div><div class="metric-value" id="activeCount">5</div><div class="metric-foot">Sample network activity</div></div>
+          <div class="metric"><div class="metric-top"><span>Combined hashrate</span><span class="metric-icon">⌁</span></div><div class="metric-value" id="hashMetric">6.42 <span style="font-size:12px;color:#85917a">TH/s</span></div><div class="metric-foot">Illustrative network rate</div></div>
+          <div class="metric"><div class="metric-top"><span>GPU token rewards</span><span class="metric-icon">◈</span></div><div class="metric-value" id="rewardMetric">18,640</div><div class="metric-foot">Illustrative reward total</div></div>
+          <div class="metric"><div class="metric-top"><span>Average GPU temp.</span><span class="metric-icon">♨</span></div><div class="metric-value" id="tempMetric">61° <span style="font-size:12px;color:#85917a">C</span></div><div class="metric-foot">Sample hardware readings</div></div>
+        </section>
+        <div class="section-head" id="minersSection">
+          <div><h2>NVIDIA miner fleet</h2><p>Connected rigs and hardware performance</p></div>
+          <span class="subtle">Agent connection required</span>
+        </div>
+        <section class="dashboard-grid">
+          <div class="panel">
+            <div class="panel-header"><div><h3>Miner telemetry</h3><p>GPU model, hashrate, temperature, and accepted shares</p></div><span class="tag">LIVE DATA</span></div>
+            <div class="table-wrap">
+              <table id="minersTable">
+                <thead><tr><th>Miner / wallet</th><th>NVIDIA GPU</th><th>Hashrate</th><th>Temp.</th><th>Accepted shares</th></tr></thead>
+                <tbody id="minerRows"></tbody>
+              </table>
+            </div>
+            <div style="padding:13px 17px;border-top:1px solid #252b20;color:#7d8872;font-size:10px;display:flex;justify-content:space-between;gap:10px"><span id="minerCountLabel">0 connected miners</span><button id="showAllBtn" style="background:none;border:0;color:#a8df67;font-size:10px">Refresh ↗</button></div>
+          </div>
+          <div class="panel" id="leaderboardSection">
+            <div class="panel-header"><div><h3>Top contributors</h3><p>Ranked by verified pool shares</p></div><span class="tag">VERIFIED</span></div>
+            <div class="leader-list" id="leaderRows"></div>
+          </div>
+        </section>
+        <section class="lower-grid" id="rewardsSection">
+          <div class="panel">
+            <div class="panel-header"><div><h3>Epoch progress</h3><p>Reward cycle</p></div><span class="tag">CURRENT EPOCH</span></div>
+            <div class="progress-content">
+              <div class="progress-row"><span>Current epoch</span><strong><span id="epochNumber">Epoch 024</span> · <span id="epochPercent">68%</span></strong></div>
+              <div class="progress-track"><div class="progress-fill" id="epochProgressFill" style="width:68%"></div></div>
+              <div class="progress-row"><span>Epoch time remaining</span><strong id="epochCountdown">Calculating…</strong></div>
+              <div class="progress-row"><span>Reward pool target</span><strong><span id="poolCurrent">68,400</span> / <span id="poolTarget">100,000</span> GPU</strong></div>
+              <div class="progress-track"><div class="progress-fill" id="poolProgressFill" style="width:68%;opacity:.68"></div></div>
+              <div class="progress-row"><span>Reward settlement</span><strong id="settlementStatus">Awaiting verified pool data</strong></div>
+              <p style="font-size:10px;color:#75806b;line-height:1.7;margin:12px 0 0">Illustrative epoch schedule and pool targets. Live progress and payouts require the GPU reward contract and verified mining backend.</p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><div><h3>Your rewards</h3><p>Wallet rewards</p></div><span class="tag">GPU</span></div>
+            <div class="reward-box"><div class="coin">G</div><div><h4 id="userRewards">Connect wallet</h4><p id="walletRewardCopy">Connect Phantom to associate your wallet<br>with this dashboard</p></div><button class="btn" id="claimBtn">Rewards</button></div>
+          </div>
+        </section>
+        <section class="miner-console" id="browserMinerSection" aria-labelledby="browserMinerTitle">
+          <div class="miner-console-head">
+            <div><div class="gpu-brandline"><span class="nvidia-mark">N</span> NVIDIA GPU MINER</div><div class="miner-console-title" id="browserMinerTitle" style="margin-top:9px">Connect your NVIDIA miner</div><div class="miner-console-sub">GPU Network · Miner agent and pool telemetry</div></div>
+            <span class="tag">NVIDIA-COMPATIBLE</span>
+          </div>
+          <div class="miner-console-body">
+            <div class="miner-form">
+              <div class="miner-field"><label for="minerWalletInput">Your Solana address</label><input id="minerWalletInput" type="text" inputmode="text" autocomplete="off" placeholder="Connect Phantom or enter public address"><div class="miner-help">Use a public address only. Connecting a wallet associates your identity; reward claims will require the configured on-chain reward program.</div></div>
+              <div class="miner-field"><label for="minerUsername">Public username / optional</label><input id="minerUsername" type="text" maxlength="24" placeholder="e.g. green_gpu"><div class="miner-help">3–24 letters, numbers, underscores or hyphens. Leave blank to show only your shortened wallet.</div></div>
+              <div class="miner-field"><label for="minerAgent">Miner agent status</label><input id="minerAgent" type="text" value="Not connected · agent endpoint not configured" readonly><div class="miner-help">The separate NVIDIA-compatible miner must report signed telemetry and pool-verified shares to the backend. This website cannot directly start the mining engine.</div></div>
+              <label class="consent-row"><input id="minerConsent" type="checkbox"><span>I understand the website dashboard does not mine by itself. Actual GPU metrics and token rewards appear only after a compatible miner agent and pool verification backend are configured.</span></label>
+              <button class="btn primary start-mining" id="startBrowserMining" disabled>Check miner connection</button>
+              <div class="miner-help">This checks configured connection status only. It will not start mining or request a wallet transaction.</div>
+            </div>
+            <div class="miner-status">
+              <div class="session-label"><span>Connected miner telemetry</span><span><span class="live-dot" id="sessionDot" style="background:#76b900;box-shadow:0 0 9px #76b90055"></span><span id="sessionState">Preview active</span></span></div>
+              <div class="session-hash" id="sessionHash">1,240 H/s</div>
+              <div class="device-grid"><div class="device-card"><span>GPU model</span><strong id="telemetryGpu">RTX 4090</strong><small>Example hardware</small></div><div class="device-card"><span>Temperature</span><strong id="telemetryTemp">62 °C</strong><small>Example reading</small></div><div class="device-card"><span>Power draw</span><strong id="telemetryPower">320 W</strong><small>Example reading</small></div><div class="device-card"><span>Accepted shares</span><strong id="telemetryShares">1,284</strong><small>Example count</small></div></div>
+              <div class="sim-visual" id="simVisual"><div class="sim-orbit"></div><div class="sim-caption" id="simCaption">Waiting for miner-agent telemetry.</div></div>
+              <div class="session-stats"><div class="session-stat"><span>Pool shares</span><strong id="sessionShares">1,284 accepted · 12 rejected</strong></div><div class="session-stat"><span>Mining engine</span><strong>NVIDIA-compatible miner agent</strong></div><div class="session-stat"><span>Reward accounting</span><strong>Preview values · not verified</strong></div></div>
+              <div class="session-message" id="sessionMessage">No miner agent is connected. Configure the miner agent and pool endpoint to show actual GPU metrics and verified shares here.</div>
+            </div>
+          </div>
+        </section>
+        <footer><span>© 2026 GPU Network</span><span>GPU compute network · Community dashboard</span></footer>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+// Sample rows for the UI preview only. Wallet strings are deliberately fictional.
+const miners = [
+  {name:"GreenNode-01",user:"7xQp…m4Kz",wallet:"7xQp4mR8vL2n…m4Kz",gpu:"RTX 4090",hash:1840,temp:59,power:320,acceptedShares:1284,rejectedShares:12,reward:5240,initial:"GN",status:"Preview"},
+  {name:"HashPilot",user:"9dFk…2vPa",wallet:"9dFk8tW3qN5s…2vPa",gpu:"RTX 4080 SUPER",hash:1460,temp:61,power:285,acceptedShares:976,rejectedShares:7,reward:4180,initial:"HP",status:"Preview"},
+  {name:"NexusRig",user:"4mRb…8cYt",wallet:"4mRb2pL7xD9h…8cYt",gpu:"RTX 4090",hash:1320,temp:63,power:335,acceptedShares:842,rejectedShares:9,reward:3760,initial:"NR",status:"Preview"},
+  {name:"pixelminer",user:"B8vN…5kQe",wallet:"B8vN6rT2aP4w…5kQe",gpu:"RTX 4070 Ti",hash:980,temp:58,power:220,acceptedShares:614,rejectedShares:4,reward:2910,initial:"PM",status:"Preview"},
+  {name:"volt_node",user:"F3sA…9jLm",wallet:"F3sA7yU1cK6p…9jLm",gpu:"RTX 4080",hash:820,temp:64,power:265,acceptedShares:503,rejectedShares:6,reward:2550,initial:"VN",status:"Preview"}
+];
+// Epoch UI runs locally for the prototype; replace these values with the reward contract API for production.
+const epochStartedAt = Date.now();
+const epochDurationMs = 6 * 60 * 60 * 1000;
+const epochBase = 24;
+function updateEpochProgress() {
+  const elapsed = (Date.now() - epochStartedAt) % epochDurationMs;
+  const progress = 68 + (elapsed / epochDurationMs) * 31.5;
+  const shownProgress = Math.min(99.5, progress);
+  const remaining = epochDurationMs - elapsed;
+  const hrs = Math.floor(remaining / 3600000);
+  const mins = Math.floor((remaining % 3600000) / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+  document.getElementById("epochNumber").textContent = `Epoch ${String(epochBase + Math.floor((Date.now() - epochStartedAt) / epochDurationMs)).padStart(3,"0")}`;
+  document.getElementById("epochPercent").textContent = `${shownProgress.toFixed(1)}%`;
+  document.getElementById("epochProgressFill").style.width = `${shownProgress}%`;
+  document.getElementById("epochCountdown").textContent = `${hrs}h ${String(mins).padStart(2,"0")}m ${String(secs).padStart(2,"0")}s`;
+  const pool = Math.round(68400 + (shownProgress - 68) * 1000);
+  document.getElementById("poolCurrent").textContent = pool.toLocaleString("en-US");
+  document.getElementById("poolProgressFill").style.width = `${Math.min(100,pool / 1000)}%`;
+}
+updateEpochProgress();
+setInterval(updateEpochProgress, 1000);
+let showAll = false;
+const fmt = n => n.toLocaleString("en-US");
+function renderMiners(filter="") {
+  const visible = (showAll ? miners : miners.slice(0,8)).filter(m => (m.name+" "+m.user+" "+m.gpu).toLowerCase().includes(filter.toLowerCase()));
+  document.getElementById("minerRows").innerHTML = visible.length ? visible.map(m=>`<tr><td><div class="miner"><span class="gpu-icon">${m.initial}</span><span>${m.name}<br><small style="color:#87917c;font-size:9px;font-weight:400">${m.wallet}</small></span></div></td><td>${m.gpu}</td><td>${m.hash.toLocaleString()} H/s</td><td>${m.temp}°C</td><td>${m.acceptedShares.toLocaleString()}</td></tr>`).join("") : `<tr><td colspan="5" style="padding:25px 17px;color:#87917c;text-align:center">${filter ? "No matching sample miners." : "No sample miner profiles."}</td></tr>`;
+  document.getElementById("minerCountLabel").textContent = filter ? `${visible.length} matching sample miners` : `${visible.length} sample miner profiles · illustrative data`;
+}
+function renderLeaders() {
+  document.getElementById("leaderRows").innerHTML = [...miners].sort((a,b)=>b.reward-a.reward).map((m,i)=>`<div class="leader"><div class="rank">${String(i+1).padStart(2,"0")}</div><div style="display:flex;align-items:center;gap:9px;min-width:0"><div class="leader-avatar">${m.initial}</div><div style="min-width:0"><div class="leader-name">${m.name}</div><div class="leader-meta">${m.gpu} · sample profile</div></div></div><div class="leader-amount">${fmt(m.reward)}<small>GPU</small></div></div>`).join("");
+}
+renderMiners(); renderLeaders();
+document.getElementById("searchInput").addEventListener("input", e => { showAll = true; renderMiners(e.target.value); document.getElementById("showAllBtn").textContent = e.target.value ? "Clear search ↗" : "Show fewer ↗"; });
+document.getElementById("showAllBtn").addEventListener("click", () => { renderMiners(document.getElementById("searchInput").value); toast("Miner data refresh requested. The authenticated agent API is not configured yet."); });
+function toast(message) { const el=document.getElementById("toast"); el.textContent=message; el.classList.add("show"); clearTimeout(window.toastTimer); window.toastTimer=setTimeout(()=>el.classList.remove("show"),3200); }
+const connectBtn = document.getElementById("connectBtn");
+const userRewards = document.getElementById("userRewards");
+const walletRewardCopy = document.getElementById("walletRewardCopy");
+let connectedWallet = null;
+function shortAddress(address) { return address ? `${address.slice(0,4)}…${address.slice(-4)}` : ""; }
+function updateWalletUI(address) {
+  connectedWallet = address || null;
+  const liquidCore = document.getElementById("simVisual");
+  liquidCore.classList.toggle("wallet-active", Boolean(connectedWallet));
+  if (connectedWallet) {
+    document.getElementById("simCaption").textContent = "Wallet linked · miner interface active";
+    document.getElementById("sessionState").textContent = "Wallet connected";
+    document.getElementById("sessionDot").style.background = "#76b900";
+    document.getElementById("sessionMessage").textContent = "Solana wallet connected. The dashboard is ready; waiting for the separate NVIDIA miner agent to report real hardware telemetry and verified pool shares.";
+    document.getElementById("minerAgent").value = "Wallet connected · waiting for miner agent";
+  } else {
+    document.getElementById("simCaption").textContent = "Waiting for miner-agent telemetry.";
+    document.getElementById("sessionState").textContent = "Miner agent not connected";
+    document.getElementById("sessionDot").style.background = "#9aa58d";
+    document.getElementById("sessionMessage").textContent = "Connect a Solana wallet to personalize this dashboard. Actual GPU metrics and verified shares appear after the separate miner agent is connected.";
+    document.getElementById("minerAgent").value = "Not connected · agent endpoint not configured";
+  }
+  if (connectedWallet) {
+    connectBtn.innerHTML = `◉ &nbsp; <span class="wallet-address">${shortAddress(connectedWallet)}</span>`;
+    connectBtn.classList.add("wallet-connected");
+    connectBtn.setAttribute("aria-label", `Connected Solana wallet ${connectedWallet}. Click to disconnect.`);
+    userRewards.textContent = shortAddress(connectedWallet);
+    document.getElementById("minerWalletInput").value = connectedWallet;
+    walletRewardCopy.textContent = "Phantom wallet connected. Token rewards are shown when on-chain reward data is configured.";
+  } else {
+    connectBtn.textContent = "◉  Connect wallet";
+    connectBtn.classList.remove("wallet-connected");
+    connectBtn.setAttribute("aria-label", "Connect Phantom wallet");
+    userRewards.textContent = "Connect wallet";
+    walletRewardCopy.innerHTML = "Connect Phantom to associate your wallet<br>with this dashboard";
+  }
+}
+async function connectPhantom() {
+  const provider = window.phantom?.solana || (window.solana?.isPhantom ? window.solana : null);
+  if (!provider || !provider.isPhantom) {
+    toast("Phantom not found. Install Phantom, then try again.");
+    window.open("https://phantom.app/download", "_blank", "noopener,noreferrer");
+    return;
+  }
+  try {
+    const response = await provider.connect();
+    const address = response?.publicKey?.toString() || provider.publicKey?.toString();
+    if (!address) throw new Error("Wallet address was not returned.");
+    updateWalletUI(address);
+    toast(`Phantom connected: ${shortAddress(address)}`);
+  } catch (error) {
+    if (error?.code === 4001) toast("Wallet connection was cancelled.");
+    else toast(error?.message || "Could not connect to Phantom. Please try again.");
+  }
+}
+connectBtn.addEventListener("click", async () => {
+  if (connectedWallet) {
+    const provider = window.phantom?.solana || window.solana;
+    try { await provider?.disconnect?.(); } catch (_) {}
+    updateWalletUI(null);
+    toast("Wallet disconnected.");
+  } else {
+    await connectPhantom();
+  }
+});
+document.getElementById("claimBtn").addEventListener("click",()=>{
+  if (!connectedWallet) { toast("Connect your Phantom wallet first."); return; }
+  toast("Wallet connected. On-chain reward claiming must be configured for this token.");
+});
+const initialPhantom = window.phantom?.solana || (window.solana?.isPhantom ? window.solana : null);
+if (initialPhantom) {
+  initialPhantom.on?.("accountChanged", publicKey => updateWalletUI(publicKey?.toString() || null));
+  initialPhantom.on?.("disconnect", () => updateWalletUI(null));
+}
+const minerWalletInput = document.getElementById("minerWalletInput");
+const minerConsent = document.getElementById("minerConsent");
+const startBrowserMining = document.getElementById("startBrowserMining");
+function refreshMinerStartState() { startBrowserMining.disabled = !minerConsent.checked; }
+minerWalletInput.addEventListener("input", refreshMinerStartState);
+minerConsent.addEventListener("change", refreshMinerStartState);
+startBrowserMining.addEventListener("click", () => {
+  if (!minerConsent.checked) { toast("Review the miner connection disclosure first."); return; }
+  document.getElementById("sessionState").textContent = "Agent not configured";
+  document.getElementById("sessionDot").style.background = "#9aa58d";
+  document.getElementById("sessionHash").textContent = "— H/s";
+  document.getElementById("sessionShares").textContent = "Not connected";
+  document.getElementById("sessionMessage").textContent = "The NVIDIA miner agent endpoint and backend authentication are not configured. No mining has been started. Configure those services to receive live hardware telemetry and pool-verified shares.";
+  toast("Miner agent endpoint is not configured yet.");
+});
+document.getElementById("exploreBtn").addEventListener("click",()=>document.getElementById("minersSection").scrollIntoView({behavior:"smooth",block:"start"}));
+document.getElementById("rewardsBtn").addEventListener("click",()=>document.getElementById("rewardsSection").scrollIntoView({behavior:"smooth",block:"center"}));
+document.querySelectorAll(".nav button").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active")); btn.classList.add("active");
+  const dest = {"Overview":".hero","Miners":"#minersSection","Rewards":"#rewardsSection","Leaderboard":"#leaderboardSection"}[btn.dataset.section];
+  document.querySelector(dest)?.scrollIntoView({behavior:"smooth",block:"start"});
+}));
+</script>
+</body>
+</html>
